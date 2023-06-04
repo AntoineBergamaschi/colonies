@@ -17,6 +17,7 @@ RSpec.describe Game do
         expect(@game).to receive(:initialization_loop).once.ordered
         expect(@game).to receive(:message).ordered.with("Start of the Game")
         expect(@game).to receive(:game_loop).once.ordered
+        expect(@game).to receive(:restart_loop).once.ordered
 
         @game.start
       end
@@ -109,6 +110,26 @@ RSpec.describe Game do
 
       it "Switch turns between player and stop when a user win" do
         allow(@game).to receive(:message)
+        expect(@game).to receive(:rand).and_return(0)
+
+        expect(@game).to receive(:fire_loop).ordered
+        expect(@game).to receive(:has_win?).ordered.and_return(false)
+        expect(@game).to receive(:switch_players).ordered
+
+        expect(@game).to receive(:fire_loop).ordered
+        expect(@game).to receive(:has_win?).ordered.and_return(true)
+        expect(@game).to receive(:switch_players).ordered
+
+        @game.game_loop
+        expect(@game.current_state).to eq(:stop)
+      end
+
+      it "Should select first user at random" do
+        allow(@game).to receive(:message)
+
+        expect(@game).to receive(:rand).and_return(1)
+        expect(@game).to receive(:switch_players).ordered
+
         expect(@game).to receive(:fire_loop).ordered
         expect(@game).to receive(:has_win?).ordered.and_return(false)
         expect(@game).to receive(:switch_players).ordered
@@ -128,12 +149,8 @@ RSpec.describe Game do
 
         it "Should restart the initialization / game loop" do
           # Note that call from test count as 1
-          expect(@game).to receive(:game_loop).and_call_original.exactly(2)
-          expect(@game).to receive(:initialization_loop).once
-
-          expect(@game).to receive(:fire_loop)
-          expect(@game).to receive(:has_win?).and_return(true)
-          expect(@game).to receive(:switch_players)
+          expect(@game).to receive(:rand).and_return(0)
+          expect(@game).to receive(:start).once
 
           @game.game_loop
         end
@@ -201,6 +218,21 @@ RSpec.describe Game do
           expect(@game).to_not receive(:ask_player)
           @game.fire_loop
         end
+      end
+    end
+
+    describe "#restart_loop" do
+
+      it "Should restart game" do
+        expect(@game).to receive(:ask_player).and_return("yes")
+
+        expect(@game.restart_loop).to eq(true)
+      end
+
+      it "Should end the game" do
+        expect(@game).to receive(:ask_player).and_return("no")
+
+        expect(@game.restart_loop).to eq(false)
       end
     end
 
@@ -346,6 +378,34 @@ RSpec.describe Game do
 
         it "Only take the first two chars of coordinate" do
           expect(@game.parse_coordinate("a10")).to eq({ x: 1, y: 0 })
+        end
+      end
+    end
+
+    describe "#parse_restart" do
+      it "Should only be true for #{Game::IO::TRUE_WORD}" do
+        alpha = ('a'..'z').to_a
+        100.times do
+          x = (rand(2) + 1).times.map{alpha[rand(alpha.size)]}.join
+          next if (Game::IO::TRUE_WORD).include?(x)
+          expect(@game.parse_restart(x)).to eq(false)
+        end
+      end
+    end
+
+    describe "#valid_restart_input" do
+      it "Should only accept #{(Game::IO::FALSE_WORD + Game::IO::TRUE_WORD).inspect}" do
+        (Game::IO::FALSE_WORD + Game::IO::TRUE_WORD).each do |x|
+          expect(@game.valid_restart_input?(x)).to eq(true)
+        end
+      end
+
+      it "Should should fail otherwise" do
+        alpha = ('a'..'z').to_a
+        100.times do
+          x = (rand(2) + 1).times.map{alpha[rand(alpha.size)]}.join
+          next if (Game::IO::FALSE_WORD + Game::IO::TRUE_WORD).include?(x)
+          expect(@game.valid_restart_input?(x)).to eq(false)
         end
       end
     end

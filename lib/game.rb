@@ -18,6 +18,8 @@ module Game
     }
 
     KEY_WORD = ["quit", "restart", "draw", "player"]
+    TRUE_WORD = ["yes", "y", "t"]
+    FALSE_WORD = ["n", "no", "f"]
 
     # @return [String] The line of text entered in the console
     def ask_player
@@ -56,6 +58,18 @@ module Game
       coordinate[:x] = str_coordinates[1].to_i
       coordinate[:y] = Board::ALPHABET.index(str_coordinates[0].to_s)
       return coordinate
+    end
+
+    # @param keycode [String, #to_s]
+    # @return [Boolean]
+    def parse_restart(str)
+      return TRUE_WORD.include?(str.to_s.downcase)
+    end
+
+    # @param keycode [String, #to_s]
+    # @return [Boolean]
+    def valid_restart_input?(str)
+      return (FALSE_WORD + TRUE_WORD).include?(str.to_s.downcase)
     end
 
     # @param keycode [String, #to_s]
@@ -106,11 +120,18 @@ module Game
     # @param options [Hash]
     # @option options []
     def start(options = {})
+      @current_state = :running
+
       message "Initializing Game"
       initialization_loop
 
       message "Start of the Game"
       game_loop
+
+      if restart_loop
+        @current_state = :restart
+        start
+      end
 
       return nil
     end
@@ -205,6 +226,9 @@ module Game
     # Each turn both players fire at each other
     # First player to sank all of the other player ships wins
     def game_loop
+      # Select player at random
+      rand(10).to_i.times { switch_players }
+
       while STATES[@current_state]
         message "-" * 6
         message "#{player.name} turn"
@@ -219,10 +243,7 @@ module Game
       end
 
       if @current_state == :restart
-        @current_state = :running
-        # Restart initialization loop
-        initialization_loop
-        game_loop
+        start()
       end
     end
 
@@ -260,6 +281,19 @@ module Game
 
         # End of the loop
         break
+      end
+    end
+
+    def restart_loop
+      while true
+        message "* Restart [Y/*]:"
+
+        response = ask_player
+        next if !valid_restart_input?(response)
+
+        response = parse_restart(response)
+
+        return response
       end
     end
 
