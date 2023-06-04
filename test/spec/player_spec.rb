@@ -27,6 +27,25 @@ RSpec.describe Player do
     end
   end
 
+  describe "#add_miss" do
+    it "increment the missed_fire counter" do
+      expect(@player.missed_fire).to eq(0)
+      @player.add_miss
+      expect(@player.missed_fire).to eq(1)
+    end
+  end
+
+  describe "#reset_miss" do
+    before(:example) do
+      @player.instance_variable_set("@missed_fire", 100)
+    end
+    it "revert missed_fire counter to 0" do
+      expect(@player.missed_fire).to_not eq(0)
+      @player.reset_miss
+      expect(@player.missed_fire).to eq(0)
+    end
+  end
+
   describe "#loose?" do
     before(:example) do
       @player.instance_variable_set("@ships", Array.new(2) { instance_double(Ship) })

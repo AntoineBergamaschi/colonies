@@ -122,4 +122,52 @@ RSpec.describe Board do
       @board.add_ships(@mock_ship)
     end
   end
+
+  describe "#get_hint" do
+    before(:example) do
+      # Simulate a ship and checked position
+      cell = @board.cells[0]
+      cell.checked = true
+
+      cell = @board.cells[1]
+      cell.ship_part = true
+    end
+
+    it "Should return the coordinate of the checked position the closest to a ship part" do
+      expect(@board.get_hint).to eq({x: 0, y: 0})
+    end
+
+    context "edge case" do
+      before(:example) do
+        # Simulate a ship and checked position
+        cell = @board.cells[1]
+        cell.checked = true
+
+        cell = @board.cells[(Board::WIDTH*Board::HEIGHT)-1]
+        cell.ship_part = true
+      end
+
+      it "Should return the coordinate of the checked position the closest to a ship part" do
+        expect(@board.get_hint).to eq({x: 1, y: 0})
+
+        # Change the Hint location
+        cell = @board.cells[10]
+        cell.checked = true
+
+        expect(@board.get_hint).to eq({x: 0, y: 2})
+
+        # Change the Hint location
+        cell = @board.cells[14]
+        cell.checked = true
+
+        expect(@board.get_hint).to eq({x: 4, y: 2})
+
+        # Change the Hint location
+        cell = @board.cells[11]
+        cell.ship_part = true
+
+        expect(@board.get_hint).to eq({x: 0, y: 2})
+      end
+    end
+  end
 end

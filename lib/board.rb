@@ -3,12 +3,12 @@
 class Board
   HEIGHT = 5
   WIDTH = 5
-  ALPHABET = ('a'..("a"..'z').to_a[HEIGHT-1]).to_a
+  ALPHABET = ('a'..("a"..'z').to_a[HEIGHT - 1]).to_a
 
   attr_reader :cells
 
   def initialize
-    @cells = Array.new(HEIGHT*WIDTH){ Cell.new }
+    @cells = Array.new(HEIGHT * WIDTH) { Cell.new }
   end
 
   class Cell
@@ -75,12 +75,12 @@ class Board
   def add_ship(ship)
     ship.parts.each do |part|
       cells[part.position].ship_part = part
-    end;nil
+    end; nil
   end
 
   # @param ships [Enumerable<Ship>]
   def add_ships(ships)
-    ships.each { |ship| add_ship(ship) };nil
+    ships.each { |ship| add_ship(ship) }; nil
   end
 
   # @param coordinates [Hash] {:x, :y} coordinates
@@ -91,13 +91,39 @@ class Board
   end
 
   def reset
-    @cells.each{|x| x.reset };nil
+    @cells.each { |x| x.reset }; nil
   end
 
   def draw
     (0...Board::HEIGHT).each do |i|
-      print @cells[(i * Board::WIDTH)...((i + 1) * Board::WIDTH)].map{|x| x.to_s}.inspect
+      print @cells[(i * Board::WIDTH)...((i + 1) * Board::WIDTH)].map { |x| x.to_s }.inspect
       print "\n"
-    end;nil
+    end; nil
+  end
+
+  # @return [Hash] The coordinate of the fire at is the closest to a remaining ship part
+  def get_hint
+    remaining_ships_position = []
+    @cells.each_with_index { |x, i| !x.checked && x.ship_part ? remaining_ships_position << i : nil }
+
+    tmp_array = Array.new(WIDTH * HEIGHT) { 1000 }
+
+    (0...WIDTH).each do |i|
+      (0...HEIGHT).each do |j|
+        # If this cell has been already check
+        if get_cell({ x: i, y: j }).checked
+          tmp_array[i + j * WIDTH] = remaining_ships_position.map do |position|
+            x = position % WIDTH
+            y = position / WIDTH
+
+            # Calculate the distance between this pixel and the position
+            (x - i).pow(2) + (y - j).pow(2)
+          end.min
+        end
+      end
+    end
+
+    # The min value is the one to select
+    return Board.to_coordinate(tmp_array.index(tmp_array.min))
   end
 end

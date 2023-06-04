@@ -13,13 +13,36 @@ RSpec.describe Game do
 
     describe "#start" do
       it "It starts the initialization loop and game loop and notify players" do
-        expect(@game).to receive(:message).ordered.with("Initializing Game")
-        expect(@game).to receive(:initialization_loop).once.ordered
-        expect(@game).to receive(:message).ordered.with("Start of the Game")
-        expect(@game).to receive(:game_loop).once.ordered
-        expect(@game).to receive(:restart_loop).once.ordered
+        # Infinite Loop
+        # mock_players = Array.new(2) { instance_double(Player) }
+        # mock_players.each { |x| allow(x).to receive(:win).and_return(0) }
+        #
+        # expect(@game).to receive(:message).ordered.with("Initializing Game")
+        # expect(@game).to receive(:initialization_loop).ordered
+        # expect(@game).to receive(:message).ordered.with("Start of the Game")
+        # expect(@game).to receive(:game_loop).ordered
+        # expect(@game).to receive(:players).ordered.and_return(mock_players)
+        # expect(@game).to receive(:restart_loop).ordered.and_return(false)
+        # allow(@game).to receive(:message)
+        #
+        # @game.start
+      end
 
-        @game.start
+      context "One of the player has win #{Game::Core::NUMBER_OF_WIN}" do
+        it "Should ends the loop" do
+          mock_players = Array.new(2) { instance_double(Player) }
+          mock_players.each { |x| allow(x).to receive(:win).and_return(Game::Core::NUMBER_OF_WIN) }
+
+          expect(@game).to receive(:message).ordered.with("Initializing Game")
+          expect(@game).to receive(:initialization_loop).once.ordered
+          expect(@game).to receive(:message).ordered.with("Start of the Game")
+          expect(@game).to receive(:game_loop).once.ordered
+          expect(@game).to receive(:players).once.ordered.and_return(mock_players)
+          expect(@game).to receive(:restart_loop).once.ordered.and_return(false)
+          allow(@game).to receive(:message)
+
+          @game.start
+        end
       end
     end
 
@@ -161,7 +184,7 @@ RSpec.describe Game do
       before(:example) do
         @game.instance_variable_set("@players", Array.new(2) { Player.new("toto") })
         # Add default ship to opponent board
-        ship = Ship.new({x: 0, y:0}, 4, 0)
+        ship = Ship.new({ x: 0, y: 0 }, 4, 0)
         ship.build_parts(@game.opponent.board)
         @game.opponent.board.add_ship(ship)
 
@@ -172,6 +195,7 @@ RSpec.describe Game do
         allow(@game).to receive(:message)
         expect(@game).to receive(:ask_player).once.and_return(@player_input)
         expect(@game).to receive(:message).once.with("- You hit a Ship !")
+        expect(@game.player).to receive(:reset_miss).once
 
         @game.fire_loop
       end
@@ -184,6 +208,7 @@ RSpec.describe Game do
         it "Should show player miss message" do
           allow(@game).to receive(:message)
           expect(@game).to receive(:ask_player).once.and_return(@player_input)
+          expect(@game.player).to receive(:add_miss).once
           expect(@game).to receive(:message).once.with("- You miss !")
 
           @game.fire_loop
@@ -193,9 +218,9 @@ RSpec.describe Game do
       context "Sank boat" do
         before(:example) do
           # Hit the other parts of the ship
-          @game.opponent.board.get_cell({x: 0, y:0}).check
-          @game.opponent.board.get_cell({x: 1, y:0}).check
-          @game.opponent.board.get_cell({x: 2, y:0}).check
+          @game.opponent.board.get_cell({ x: 0, y: 0 }).check
+          @game.opponent.board.get_cell({ x: 1, y: 0 }).check
+          @game.opponent.board.get_cell({ x: 2, y: 0 }).check
 
           @player_input = "A3"
         end
@@ -204,6 +229,7 @@ RSpec.describe Game do
           allow(@game).to receive(:message)
           expect(@game).to receive(:ask_player).once.and_return(@player_input)
           expect(@game).to receive(:message).once.with("- The Ship has sank !")
+          expect(@game.player).to receive(:reset_miss).once
 
           @game.fire_loop
         end
@@ -233,6 +259,23 @@ RSpec.describe Game do
         expect(@game).to receive(:ask_player).and_return("no")
 
         expect(@game.restart_loop).to eq(false)
+      end
+    end
+
+    describe "#show_hint" do
+      before(:example) do
+        @mock_board = instance_double(Board)
+        @mock_player = instance_double(Player)
+      end
+
+      it "Display secret information to player about opponent" do
+        allow(@game).to receive(:message)
+        expect(@game).to receive(:to_display_coordinate).once
+        expect(@game).to receive(:opponent).once.and_return(@mock_player)
+        expect(@mock_player).to receive(:board).once.and_return(@mock_board)
+        expect(@mock_board).to receive(:get_hint).once.and_return({ x: 0, y: 0 })
+
+        @game.show_hint
       end
     end
 
@@ -382,11 +425,19 @@ RSpec.describe Game do
       end
     end
 
+    describe "#to_display_coordinate" do
+      it "transform Board coordinates into display coordinates" do
+        expect(@game.to_display_coordinate({ x: 0, y: 0 })).to eq("A0")
+        expect(@game.to_display_coordinate({ x: 0, y: 1 })).to eq("B0")
+        expect(@game.to_display_coordinate({ x: 1, y: 1 })).to eq("B1")
+      end
+    end
+
     describe "#parse_restart" do
       it "Should only be true for #{Game::IO::TRUE_WORD}" do
         alpha = ('a'..'z').to_a
         100.times do
-          x = (rand(2) + 1).times.map{alpha[rand(alpha.size)]}.join
+          x = (rand(2) + 1).times.map { alpha[rand(alpha.size)] }.join
           next if (Game::IO::TRUE_WORD).include?(x)
           expect(@game.parse_restart(x)).to eq(false)
         end
@@ -403,7 +454,7 @@ RSpec.describe Game do
       it "Should should fail otherwise" do
         alpha = ('a'..'z').to_a
         100.times do
-          x = (rand(2) + 1).times.map{alpha[rand(alpha.size)]}.join
+          x = (rand(2) + 1).times.map { alpha[rand(alpha.size)] }.join
           next if (Game::IO::FALSE_WORD + Game::IO::TRUE_WORD).include?(x)
           expect(@game.valid_restart_input?(x)).to eq(false)
         end

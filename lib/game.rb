@@ -60,6 +60,10 @@ module Game
       return coordinate
     end
 
+    def to_display_coordinate(coordinates)
+      return "#{Board::ALPHABET[coordinates[:y]].upcase}#{coordinates[:x]}"
+    end
+
     # @param keycode [String, #to_s]
     # @return [Boolean]
     def parse_restart(str)
@@ -109,6 +113,8 @@ module Game
     }
 
     NUMBER_OF_PLAYER = 2
+    MISS_FIRE_THRESHOLD = 3
+    NUMBER_OF_WIN = 2
 
     def initialize
       @players = []
@@ -128,8 +134,21 @@ module Game
       message "Start of the Game"
       game_loop
 
-      if restart_loop
-        @current_state = :restart
+      winner = players.detect { |x| x.win >= NUMBER_OF_WIN }
+
+      if winner
+        message "#" * 6
+        message "The Winner is #{winner.to_s}"
+        message "#" * 6
+
+        if restart_loop
+          @current_state = :restart
+          start
+        end
+      elsif @current_state == :stop
+       # Do nothing end the game
+      else
+        # Restart the game while there is no winner
         start
       end
 
@@ -233,10 +252,16 @@ module Game
         message "-" * 6
         message "#{player.name} turn"
 
+        # Show hint if player miss to many fire
+        if player.missed_fire >= MISS_FIRE_THRESHOLD
+          show_hint()
+          player.reset_miss
+        end
+
         fire_loop
 
         # Games continues while there is no victory
-        @current_state = :stop if has_win?
+        @current_state = :restart if has_win?
 
         # Invert first and last player
         switch_players
@@ -275,7 +300,9 @@ module Game
           if cell.ship_part.ship.sank?
             message "- The Ship has sank !"
           end
+          player.reset_miss
         else
+          player.add_miss
           message "- You miss !"
         end
 
@@ -286,7 +313,7 @@ module Game
 
     def restart_loop
       while true
-        message "* Restart [Y/*]:"
+        message "* Restart [Y/N]:"
 
         response = ask_player
         next if !valid_restart_input?(response)
@@ -295,6 +322,13 @@ module Game
 
         return response
       end
+    end
+
+    def show_hint
+      message "-" * 6
+      message "Top secret information"
+      message "Your fire at position #{to_display_coordinate(opponent.board.get_hint)} was close to an opponent ship"
+      message "-" * 6
     end
 
     # @return [Boolean] True if the -first- player win the game
