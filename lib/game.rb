@@ -8,13 +8,13 @@ module Game
     # Map between numeric pad keys and actual radian orientation
     MAP_KEY_ORIENTATION = {
       "6" => 0,
-      "9" => Math::PI / 4,
-      "8" => Math::PI / 2,
-      "7" => 3 * Math::PI / 4,
+      "3" => Math::PI / 4,
+      "2" => Math::PI / 2,
+      "1" => 3 * Math::PI / 4,
       "4" => Math::PI,
-      "1" => 5 * Math::PI / 4,
-      "2" => 3 * Math::PI / 2,
-      "3" => 7 * Math::PI / 4,
+      "7" => 5 * Math::PI / 4,
+      "8" => 3 * Math::PI / 2,
+      "9" => 7 * Math::PI / 4,
     }
 
     KEY_WORD = ["quit", "restart", "draw", "player"]
@@ -265,10 +265,6 @@ module Game
 
         # Invert first and last player
         switch_players
-      end
-
-      if @current_state == :restart
-        start()
       end
     end
 

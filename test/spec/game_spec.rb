@@ -144,7 +144,7 @@ RSpec.describe Game do
         expect(@game).to receive(:switch_players).ordered
 
         @game.game_loop
-        expect(@game.current_state).to eq(:stop)
+        expect(@game.current_state).to eq(:restart)
       end
 
       it "Should select first user at random" do
@@ -162,7 +162,7 @@ RSpec.describe Game do
         expect(@game).to receive(:switch_players).ordered
 
         @game.game_loop
-        expect(@game.current_state).to eq(:stop)
+        expect(@game.current_state).to eq(:restart)
       end
 
       context "Restart call" do
@@ -173,7 +173,6 @@ RSpec.describe Game do
         it "Should restart the initialization / game loop" do
           # Note that call from test count as 1
           expect(@game).to receive(:rand).and_return(0)
-          expect(@game).to receive(:start).once
 
           @game.game_loop
         end
